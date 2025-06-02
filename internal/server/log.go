@@ -1,29 +1,23 @@
 package server
 
 import (
-	"fmt"
 	"sync"
+
+	"github.com/mesameen/proglog/internal/model"
 )
-
-type Record struct {
-	Value  []byte `json:"value"`
-	Offset uint64 `json:"offset"`
-}
-
-var ErrOffsetNotFound = fmt.Errorf("offset not found")
 
 type Log struct {
 	mu      sync.RWMutex
-	records []*Record
+	records []*model.Record
 }
 
 func NewLog() *Log {
 	return &Log{
-		records: make([]*Record, 0),
+		records: make([]*model.Record, 0),
 	}
 }
 
-func (c *Log) Append(record *Record) (uint64, error) {
+func (c *Log) Append(record *model.Record) (uint64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	record.Offset = uint64(len(c.records))
@@ -31,11 +25,11 @@ func (c *Log) Append(record *Record) (uint64, error) {
 	return record.Offset, nil
 }
 
-func (c *Log) Read(offset uint64) (*Record, error) {
+func (c *Log) Read(offset uint64) (*model.Record, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if offset >= uint64(len(c.records)) {
-		return nil, ErrOffsetNotFound
+		return nil, model.ErrOffsetNotFound
 	}
 	return c.records[offset], nil
 }
