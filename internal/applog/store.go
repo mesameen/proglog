@@ -3,9 +3,10 @@ package applog
 import (
 	"bufio"
 	"encoding/binary"
-	"log"
 	"os"
 	"sync"
+
+	"github.com/mesameen/proglog/internal/logger"
 )
 
 var (
@@ -26,7 +27,7 @@ type store struct {
 func newStore(f *os.File) (*store, error) {
 	fi, err := os.Stat(f.Name())
 	if err != nil {
-		log.Printf("Failed to get stat of file %s. Error: %v\n", f.Name(), err)
+		logger.Errorf("Failed to get stat of file %s. Error: %v\n", f.Name(), err)
 		return nil, err
 	}
 	size := uint64(fi.Size())
@@ -42,10 +43,12 @@ func (s *store) Append(p []byte) (uint64, uint64, error) {
 	defer s.mu.Unlock()
 	pos := s.size
 	if err := binary.Write(s.buf, enc, uint64(len(p))); err != nil {
+		logger.Errorf("Failed to get append data to file %s. Error: %v\n", s.Name(), err)
 		return 0, 0, err
 	}
 	n, err := s.buf.Write(p)
 	if err != nil {
+		logger.Errorf("Failed to buf write %s. Error: %v\n", s.Name(), err)
 		return 0, 0, err
 	}
 	n += lenWidth
@@ -57,14 +60,17 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if err := s.buf.Flush(); err != nil {
+		logger.Errorf("Failed to read data from file %s while buf flusing. Error: %v\n", s.Name(), err)
 		return nil, err
 	}
 	data := make([]byte, lenWidth)
 	if _, err := s.File.ReadAt(data, int64(pos)); err != nil {
+		logger.Errorf("Failed to read data from file %s at a position %d. Error: %v\n", s.Name(), pos, err)
 		return nil, err
 	}
 	b := make([]byte, enc.Uint64(data))
 	if _, err := s.File.ReadAt(b, int64(pos+uint64(lenWidth))); err != nil {
+		logger.Errorf("Failed to read bytes from file %s at a position %d. Error: %v\n", s.Name(), pos, err)
 		return nil, err
 	}
 	return b, nil
@@ -74,6 +80,7 @@ func (s *store) ReadAt(p []byte, off int64) (int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if err := s.buf.Flush(); err != nil {
+		logger.Errorf("Reading content failed. Error: %v", err)
 		return 0, err
 	}
 	return s.File.ReadAt(p, off)
@@ -84,6 +91,7 @@ func (s *store) Close() error {
 	defer s.mu.Unlock()
 	err := s.buf.Flush()
 	if err != nil {
+		logger.Errorf("Failed to close the store. Error: %v", err)
 		return err
 	}
 	return s.File.Close()

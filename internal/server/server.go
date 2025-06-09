@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,11 +15,6 @@ import (
 )
 
 func StartHTTPServer(ctx context.Context) error {
-	err := logger.InitiLogger()
-	if err != nil {
-		log.Panicf("Failed to initialize the logger")
-	}
-	config.LoadConfig()
 	handler := newHandler()
 	r := gin.Default()
 	r.POST("/", handler.handleProduce)

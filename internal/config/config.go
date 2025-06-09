@@ -16,5 +16,5 @@ func LoadConfig() {
 	if err := envconfig.Process("", &CommonConfig); err != nil {
 		log.Panicf("Failed to load CommonConfig. Error: %v", err)
 	}
-	log.Println("CommonConfig : %+v", CommonConfig)
+	log.Printf("CommonConfig : %+v", CommonConfig)
 }
