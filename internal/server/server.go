@@ -12,9 +12,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mesameen/proglog/internal/config"
+	"github.com/mesameen/proglog/internal/logger"
 )
 
 func StartHTTPServer(ctx context.Context) error {
+	err := logger.InitiLogger()
+	if err != nil {
+		log.Panicf("Failed to initialize the logger")
+	}
+	config.LoadConfig()
 	handler := newHandler()
 	r := gin.Default()
 	r.POST("/", handler.handleProduce)
@@ -25,9 +31,9 @@ func StartHTTPServer(ctx context.Context) error {
 	}
 	// starting server in seperate go rotine
 	go func() {
-		log.Printf("server is up and running on %v\n", config.CommonConfig.Port)
+		logger.Infof("server is up and running on %v\n", config.CommonConfig.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Panicf("Failed to start server. Error: %v\n", err)
+			logger.Panicf("Failed to start server. Error: %v\n", err)
 		}
 	}()
 	// for graceful shutdonw
@@ -36,12 +42,12 @@ func StartHTTPServer(ctx context.Context) error {
 	<-done
 
 	// shutting down server with timeout
-	log.Println("Application is shutting down")
+	logger.Infof("Application is shutting down")
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctxTimeout); err != nil {
-		log.Printf("Failed to shutting donw server. Error: %v\n", err)
+		logger.Errorf("Failed to shutting donw server. Error: %v\n", err)
 	}
-	log.Printf("Server shutdown gracefully\n")
+	logger.Infof("Server shutdown gracefully")
 	return nil
 }
